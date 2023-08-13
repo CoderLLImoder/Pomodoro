@@ -9,14 +9,17 @@ import UIKit
 
 class ViewController: UIViewController {
     
-    var seconds = 0
+    var seconds = 1
     var timer = Timer()
     var workFlag = true
+    var circularProgressBarView: CircularProgressBarView!
+    var workInterval: TimeInterval = 15
+    var relaxInterval: TimeInterval = 5
     
     private lazy var timerLabel: UILabel = {
         let timerLabel = UILabel()
-        timerLabel.textColor = UIColor(named: "green")
-        timerLabel.font = UIFont(name: "Chalkduster", size: 52)
+        timerLabel.textColor = UIColor(named: "golden")
+        timerLabel.font = UIFont(name: "AppleSDGothicNeo-Light", size: 52)
         timerLabel.text = "00:00"
         timerLabel.translatesAutoresizingMaskIntoConstraints = false
         return timerLabel
@@ -25,8 +28,8 @@ class ViewController: UIViewController {
     private lazy var ppButton: UIButton = {
         var ppButton = UIButton()
         ppButton.setTitle("", for: .normal)
-        let playImg = UIImage(named: "play")?.withTintColor(UIColor(named: "green")!, renderingMode: .alwaysOriginal)
-        let pauseImg = UIImage(named: "pause")?.withTintColor(UIColor(named: "green")!, renderingMode: .alwaysOriginal)
+        let playImg = UIImage(named: "play")?.withTintColor(UIColor(named: "golden")!, renderingMode: .alwaysOriginal)
+        let pauseImg = UIImage(named: "pause")?.withTintColor(UIColor(named: "golden")!, renderingMode: .alwaysOriginal)
         ppButton.setImage(playImg, for: .normal)
         ppButton.setImage(pauseImg, for: .selected)
         ppButton.backgroundColor = nil
@@ -38,6 +41,7 @@ class ViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         setupMainView()
+        setUpCircularProgressBarView()
         setupHierarchy()
         setupLayout()
         // Do any additional setup after loading the view.
@@ -64,38 +68,51 @@ class ViewController: UIViewController {
     private func setupMainView(){
         view.backgroundColor = UIColor(named: "bgColor")
         
+        
     }
     
     @objc private func tapButton(){
         
         if (!ppButton.isSelected)
         {
+            if(workFlag) {
+                self.circularProgressBarView.progressAnimation(duration: workInterval - Double(seconds - 1), fromValue: Double(seconds - 1) / Double(workInterval))
+            }
+            else {
+                self.circularProgressBarView.progressAnimation(duration: relaxInterval - Double(seconds - 1), fromValue: Double(seconds - 1) / Double(relaxInterval))
+            }
+                
             self.timer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { timer in
-                self.seconds += 1
+                
+                if (self.workFlag && self.seconds > 15) {
+                    self.circularProgressBarView.progressAnimation(duration: self.relaxInterval, fromValue: 0.0)
+                    self.seconds = 0
+                    self.setInterfaceColor("silver")
+                    self.workFlag = false
+                }
+                
+                if (!self.workFlag && self.seconds > 5) {
+                    self.circularProgressBarView.progressAnimation(duration: self.workInterval, fromValue: 0.0)
+                    self.seconds = 0
+                    self.setInterfaceColor("golden")
+                    self.workFlag = true
+                }
+                
+
                 let minutes = self.seconds / 60
                 let minutesStr = minutes < 10 ? "0\(String(minutes))" : String(minutes)
                 var secondsStr = String(self.seconds - (minutes * 60))
                 secondsStr = secondsStr.count < 2 ? "0\(secondsStr)" : secondsStr
                 self.timerLabel.text = "\(minutesStr):\(secondsStr)"
-                
-                if (self.workFlag && self.seconds == 15) {
-                    self.setInterfaceColor("pink")
-                    self.workFlag = false
-                    self.seconds = 0
+                self.seconds += 1
                 }
-                
-                if (!self.workFlag && self.seconds == 5) {
-                    self.setInterfaceColor("green")
-                    self.workFlag = true
-                    self.seconds = 0
-                }
-            }
+            
         }
         else
         {
             timer.invalidate()
+            self.circularProgressBarView.stopAnimation(fromValue: Double(seconds - 1) / Double(workFlag ? workInterval : relaxInterval))
         }
-            
         
         ppButton.isSelected = !ppButton.isSelected
     }
@@ -107,9 +124,19 @@ class ViewController: UIViewController {
         ppButton.setImage(playImg, for: .normal)
         ppButton.setImage(pauseImg, for: .selected)
         timerLabel.textColor = UIColor(named: newColor)
+        circularProgressBarView.setColor(newColor)
         setupHierarchy()
         setupLayout()
     }
-    
+       
+   func setUpCircularProgressBarView() {
+       // set view
+       circularProgressBarView = CircularProgressBarView(frame: view.frame)
+       // align to the center of the screen
+       circularProgressBarView.center = view.center
+       circularProgressBarView.createCircularPath()
+       // add this view to the view controller
+       view.addSubview(circularProgressBarView)
+   }
 }
 
